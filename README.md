@@ -13,8 +13,10 @@ FPGA baseline is "ForeGraph: Exploring Large-scale Graph Processing on Multi-FPG
 <br /> The hitgraph_2018_processing core contains algorithm implementations which is shown in the yellow part above.
 An assumption here is that input and output data are stored in the internal memory before being loaded into algorithm core. 
 # Directory Structure
-  Algorithm Processing Core: include 4 algorithm processing cores for Sparse Matrix-Vector Multiplication (SpMV), PageRank (PR), Weakly Connected Component (WCC), Single Source Shortest Path (SSSP). Make each module as the top module while running each algorithm.
-IP core template generate by Intel Quartus 20.1 for reference
+### Algorithm Processing Core: 
+include 4 algorithm processing cores for Sparse Matrix-Vector Multiplication (SpMV), PageRank (PR), Weakly Connected Component (WCC), Single Source Shortest Path (SSSP). Make each module as the top module while running each algorithm. IP core template generate by Intel Quartus 20.1 for reference <br />
+### test_tb:
+Unit test testbenches
 # IP core setting:
   IP catalog => basic function => floating point function => named this function add => in Functionality choose Generate Enable and generate HDL;
   
