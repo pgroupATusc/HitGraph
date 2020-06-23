@@ -1,4 +1,11 @@
 # What is this repository for?
+HitGraph, an FPGA framework to accelerate graph processing based on the edge-centric paradigm. HitGraph takes in an edge-centric graph algorithm and hardware resource constraints, determines design parameters and then generates a Register Transfer Level (RTL) FPGA design. This makes accelerator design for various graph analytics transparent and
+user-friendly by masking internal details of the accelerator design process. HitGraph enables increased data reuse and parallelism through novel algorithmic optimizations:
+(1) an optimized data layout that reduces non-sequential external memory accesses
+(2) an efficient update merging and filtering scheme to reduce the data communication between the FPGA and external memory
+(3) a partition skipping scheme to reduce redundant edge traversals for non-stationary graph algorithms.
+Based on our design methodology, we accelerate Sparse Matrix Vector Multiplication (SpMV), PageRank (PR), Single Source Shortest Path (SSSP), and Weakly Connected Component (WCC).
+We have used Intel Stratix 10 1SX280LH3F55I3XG to conduct our experiments
 Find the paper on https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8685122
 FPGA baseline is "ForeGraph: Exploring Large-scale Graph Processing on Multi-FPGA Architecture (https://web.cs.ucla.edu/~chiyuze/pub/fpga17.pdf) and "GraphOps: A dataflow library for
 graph analytics acceleration" (https://dl.acm.org/doi/pdf/10.1145/2847263.2847337)
