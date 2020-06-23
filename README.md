@@ -7,7 +7,7 @@ user-friendly by masking internal details of the accelerator design process. Hit
 Based on our design methodology, we accelerate Sparse Matrix-Vector Multiplication (SpMV), PageRank (PR), Single Source Shortest Path (SSSP), and Weakly Connected Component (WCC).
 We use **Intel Stratix 10 1SX280LH3F55I3XG** to conduct our experiments. <br /> <br />
 Find the paper on https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8685122 <br />
-FPGA baseline is "ForeGraph: Exploring Large-scale Graph Processing on Multi-FPGA Architecture (https://web.cs.ucla.edu/~chiyuze/pub/fpga17.pdf) and "GraphOps: A dataflow library for graph analytics acceleration" (https://dl.acm.org/doi/pdf/10.1145/2847263.2847337) <br />
+We used "ForeGraph: Exploring Large-scale Graph Processing on Multi-FPGA Architecture (https://web.cs.ucla.edu/~chiyuze/pub/fpga17.pdf) and "GraphOps: A dataflow library for graph analytics acceleration" (https://dl.acm.org/doi/pdf/10.1145/2847263.2847337) for baseline comparisons <br />
 # Definition of inputs and outputs
 ![hit](https://user-images.githubusercontent.com/58924633/85347795-8a8c9680-b4ae-11ea-9f91-51bd60abe20e.PNG)
 <br /> The hitgraph core contains the implementations of graph algorithms discussed in the paper (shown in yellow).
