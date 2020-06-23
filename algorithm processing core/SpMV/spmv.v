@@ -1,4 +1,4 @@
-module port #(parameter EDGE_W = 64)(
+module spmv #(parameter EDGE_W = 96)(
 	 input wire  clk,
 	 input wire  rst,
 	 input wire  start,
@@ -37,7 +37,7 @@ always @(posedge clk) begin
 end
 wire [31:0]	RAddr_wire [3:0];
 wire [511:0]	WData_wire [3:0];
-pr accelerator(
+sspmv accelerator(
 	 .clk(clk),
 	 .rst(rst),
 	 .RData0({RData_reg[0],RData_reg[1],RData_reg[2],RData_reg[3],RData_reg[4],RData_reg[5],RData_reg[6],RData_reg[7]}),
@@ -80,15 +80,15 @@ always @(posedge clk) begin
 end
 endmodule
 
-module pr #(
- 	 parameter FIFO_WIDTH = 512,
- 	 parameter PIPE_DEPTH = 8, 
- 	 parameter URAM_DATA_W = 64,
+module sspmv #(
+ 	 parameter FIFO_WIDTH = 768,
+ 	 parameter PIPE_DEPTH = 5, 
+ 	 parameter URAM_DATA_W = 32,
  	 parameter PAR_SIZE_W = 18,
  	 parameter Bank_Num_W = 4,
  	 parameter PAR_NUM   = 32,
  	 parameter PAR_NUM_W = 5,
- 	 parameter EDGE_W = 64,
+ 	 parameter EDGE_W = 96,
  	 parameter PIPE_NUM = 8,
  	 parameter PIPE_NUM_W = 3
 )(
@@ -126,15 +126,15 @@ module pr #(
 );
 localparam  IDLE=0, SCATTER=1, GATHER=2;
 reg   [1:0] 	state, nxtState;
-wire  [7:0] 	PE_DONE;
-wire 	[0:0] 	new_par_start [7:0];
-wire 	[0:0] 	new_par_active [7:0];
-wire 	[0:0] 	par_active [7:0];
-wire 	[0:0] 	w_stall_request [7:0];
-wire 	[0:0]		FIFO_full [7:0];
-wire 	[0:0]		par_complete_sig [7:0];
-wire 	[31:0]	work_size [7:0];
-wire  [31:0]  new_Raddr [7:0];
+wire  [3:0] 	PE_DONE;
+wire 	[0:0] 	new_par_start [3:0];
+wire 	[0:0] 	new_par_active [3:0];
+wire 	[0:0] 	par_active [3:0];
+wire 	[0:0] 	w_stall_request [3:0];
+wire 	[0:0]		FIFO_full [3:0];
+wire 	[0:0]		par_complete_sig [3:0];
+wire 	[31:0]	work_size [3:0];
+wire  [31:0]  new_Raddr [3:0];
 always @(posedge clk) begin
 	 if (rst) begin state <= IDLE;  end else begin state <= nxtState; end
 end
@@ -173,7 +173,7 @@ always @(*) begin
 	 endcase
 end
 
-generate for(pe_num=0; pe_num <8; pe_num = pe_num+1)
+generate for(pe_num=0; pe_num <4; pe_num = pe_num+1)
 begin: schedulers scheduler # (.PAR_NUM(PAR_NUM),.PAR_NUM_W(PAR_NUM_W)) sched (
 		.clk(clk),
 		.rst(rst),
@@ -188,11 +188,11 @@ begin: schedulers scheduler # (.PAR_NUM(PAR_NUM),.PAR_NUM_W(PAR_NUM_W)) sched (
 end
 endgenerate
 
-wire [FIFO_WIDTH-1:0]	PE_input_word [7:0];
-wire [0:0]	PE_input_valid [7:0];
-wire [511:0]	PE_output_word [7:0];
-wire [0:0]	PE_output_valid [7:0];
-wire [0:0]	PE_w_en [7:0];
+wire [FIFO_WIDTH-1:0]	PE_input_word [3:0];
+wire [0:0]	PE_input_valid [3:0];
+wire [511:0]	PE_output_word [3:0];
+wire [0:0]	PE_output_valid [3:0];
+wire [0:0]	PE_w_en [3:0];
 assign PE_input_word[0] = RData0;
 assign PE_input_valid[0] = RDataV0;
 assign PE_w_en[0] = w_en0;
@@ -217,7 +217,7 @@ assign PE_w_en[3] = w_en3;
 assign WData3 = PE_output_word[3];
 assign WDataV3 = PE_output_valid[3];
 assign w_stall_request[3] = ~w_en3;
-generate for(pe_num=0; pe_num <8; pe_num = pe_num+1)
+generate for(pe_num=0; pe_num <4; pe_num = pe_num+1)
 begin: PEs
 	 PE #(.FIFO_WIDTH(FIFO_WIDTH), .PIPE_DEPTH(PIPE_DEPTH),.URAM_DATA_W(URAM_DATA_W),.PAR_SIZE_W(PAR_SIZE_W), .PAR_NUM_W(PAR_NUM_W)) engine (
 		.clk(clk),
@@ -241,14 +241,14 @@ endgenerate
 endmodule
 
 module PE #(
- 	 parameter FIFO_WIDTH = 512,
- 	 parameter PIPE_DEPTH = 8, 
- 	 parameter URAM_DATA_W = 64,
+ 	 parameter FIFO_WIDTH = 768,
+ 	 parameter PIPE_DEPTH = 5, 
+ 	 parameter URAM_DATA_W = 32,
  	 parameter PAR_SIZE_W = 18,
  	 parameter Bank_Num_W = 4,
  	 parameter PAR_NUM   = 32,
  	 parameter PAR_NUM_W = 5,
- 	 parameter EDGE_W = 64,
+ 	 parameter EDGE_W = 96,
  	 parameter PIPE_NUM = 8,
  	 parameter PIPE_NUM_W = 3
 )(
@@ -421,7 +421,7 @@ module PE #(
 	 	 .stall_signal(HDU_stall));
 
 	 generate for(pp_num=0; pp_num <PIPE_NUM; pp_num = pp_num+1)
-	 	 begin: elements pr_PP #(.PIPE_DEPTH(PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W), .PAR_SIZE_W(PAR_SIZE_W), .EDGE_W(EDGE_W)) pipeline (
+	 	 begin: elements spmv_PP #(.PIPE_DEPTH(PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W), .PAR_SIZE_W(PAR_SIZE_W), .EDGE_W(EDGE_W)) pipeline (
 	 	 	 .clk(clk),
 	 	 	 .rst(rst),
 	 	 	 .control(control),
@@ -508,6 +508,41 @@ module PE #(
 	 	 .DRAM_W_valid(DRAM_W_valid),
 	 	 .stall_request(se_request));
 
+endmodule
+
+module combine_unit (
+ 	 input wire clk,
+ 	 input wire [31:0] update_A, 
+ 	 input wire [31:0] update_B, 
+	 output wire [31:0] combined_update
+);
+	/* fp_add adder(.aclk(clk),
+	 .s_axis_a_tvalid(1'b1),
+	 .s_axis_a_tdata(update_A),
+	 .s_axis_b_tvalid(1'b1),
+	 .s_axis_b_tdata(update_B),
+	 .m_axis_result_tdata(combined_update));
+	 
+	    fp_add adder(              
+        .aclk(clk),
+        .s_axis_a_tvalid(input_valid),        
+        .s_axis_a_tdata(update_value),
+        .s_axis_b_tvalid(input_valid),
+        .s_axis_b_tdata(dest_attr[31:0]),
+        .m_axis_result_tvalid (Wvalid),
+        //.m_axis_result_tready(1'b1),      
+        .m_axis_result_tdata(WData[31:0])              
+    );*/
+	 	 add add(
+	.clk(clk),
+	.a(update_A),
+	.b(update_B),
+	.q(combined_update),
+	.areset(rst),
+	.en(1'b1)
+	
+
+);
 endmodule
 
 module hdux8 # (
@@ -830,7 +865,7 @@ endmodule
 
 module combining_networkx8 # (
 	parameter DATA_W = 32,
-	parameter PIPE_DEPTH = 8,
+	parameter PIPE_DEPTH = 5,
 	parameter PAR_SIZE_W = 17,
     parameter PAR_NUM   = 16,
     parameter PAR_NUM_W = 4
@@ -1078,7 +1113,7 @@ endmodule
 
 module CNx8 # (
 	parameter DATA_W = 32,
-	parameter PIPE_DEPTH = 8
+	parameter PIPE_DEPTH = 5
 )(
 	input wire          			clk,
     input wire          			rst,    
@@ -1534,176 +1569,9 @@ stage53 (
 
 endmodule
 
-module CNx4 # (
-	parameter DATA_W = 32,
-	parameter PIPE_DEPTH = 8
-)(
-	input wire          			clk,
-    input wire          			rst,    
-    input wire  [3:0]         		InputValid,
-	input wire  [DATA_W*4-1:0]   	InDestVid,    
-    input wire  [DATA_W*4-1:0]   	InUpdate,    
-    output wire [DATA_W*4-1:0]   	OutUpdate,
-    output wire [DATA_W*4-1:0]  	OutDestVid,
-	output wire [3:0]  				OutValid
-);
-
-wire [7:0]  			Valid_wire  	[1:0];
-wire [DATA_W*8-1:0] 	Update_wire 	[1:0];
-wire [DATA_W*8-1:0] 	DestVid_wire 	[1:0];
-    
-// stage 0 
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage00 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(InputValid[0:0]),
-	.InputValid_B(InputValid[1:1]),
-	.InDestVid_A(InDestVid[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InDestVid_B(InDestVid[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.InUpdate_A(InUpdate[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InUpdate_B(InUpdate[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutUpdate_A(Update_wire[0][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutUpdate_B(Update_wire[0][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutDestVid_A(DestVid_wire[0][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutDestVid_B(DestVid_wire[0][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutValid_A(Valid_wire[0][0:0]),
-	.OutValid_B(Valid_wire[0][1:1])
-);
-
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage01 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(InputValid[2:2]),
-	.InputValid_B(InputValid[3:3]),
-	.InDestVid_A(InDestVid[DATA_W*2+DATA_W-1:DATA_W*2]),
-	.InDestVid_B(InDestVid[DATA_W*3+DATA_W-1:DATA_W*3]),
-	.InUpdate_A(InUpdate[DATA_W*2+DATA_W-1:DATA_W*2]),
-	.InUpdate_B(InUpdate[DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutUpdate_A(Update_wire[0][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutUpdate_B(Update_wire[0][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutDestVid_A(DestVid_wire[0][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutDestVid_B(DestVid_wire[0][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutValid_A(Valid_wire[0][2:2]),
-	.OutValid_B(Valid_wire[0][3:3])
-);
-
-// stage 1
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage10 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(Valid_wire[0][0:0]),
-	.InputValid_B(Valid_wire[0][2:2]),
-	.InDestVid_A(DestVid_wire[0][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InDestVid_B(DestVid_wire[0][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.InUpdate_A(Update_wire[0][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InUpdate_B(Update_wire[0][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutUpdate_A(Update_wire[1][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutUpdate_B(Update_wire[1][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutDestVid_A(DestVid_wire[1][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutDestVid_B(DestVid_wire[1][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutValid_A(Valid_wire[1][0:0]),
-	.OutValid_B(Valid_wire[1][2:2])
-);
-
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage11 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(Valid_wire[0][1:1]),
-	.InputValid_B(Valid_wire[0][3:3]),
-	.InDestVid_A(DestVid_wire[0][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.InDestVid_B(DestVid_wire[0][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.InUpdate_A(Update_wire[0][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.InUpdate_B(Update_wire[0][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutUpdate_A(Update_wire[1][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutUpdate_B(Update_wire[1][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutDestVid_A(DestVid_wire[1][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutDestVid_B(DestVid_wire[1][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutValid_A(Valid_wire[1][1:1]),
-	.OutValid_B(Valid_wire[1][3:3])
-);
-
-// stage 2
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage20 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(Valid_wire[1][0:0]),
-	.InputValid_B(Valid_wire[1][1:1]),
-	.InDestVid_A(DestVid_wire[1][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InDestVid_B(DestVid_wire[1][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.InUpdate_A(Update_wire[1][DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InUpdate_B(Update_wire[1][DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutUpdate_A(OutUpdate[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutUpdate_B(OutUpdate[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutDestVid_A(OutDestVid[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutDestVid_B(OutDestVid[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutValid_A(OutValid[0:0]),
-	.OutValid_B(OutValid[1:1])
-);
-
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage21 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(Valid_wire[1][2:2]),
-	.InputValid_B(Valid_wire[1][3:3]),
-	.InDestVid_A(DestVid_wire[1][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.InDestVid_B(DestVid_wire[1][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.InUpdate_A(Update_wire[1][DATA_W*2+DATA_W-1:DATA_W*2]),
-	.InUpdate_B(Update_wire[1][DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutUpdate_A(OutUpdate[DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutUpdate_B(OutUpdate[DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutDestVid_A(OutDestVid[DATA_W*2+DATA_W-1:DATA_W*2]),
-	.OutDestVid_B(OutDestVid[DATA_W*3+DATA_W-1:DATA_W*3]),
-	.OutValid_A(OutValid[2:2]),
-	.OutValid_B(OutValid[3:3])
-);
-
-endmodule
-
-module CNx2 # (
-	parameter DATA_W = 32,
-	parameter PIPE_DEPTH = 8
-)(
-	input wire          			clk,
-    input wire          			rst,    
-    input wire  [1:0]         		InputValid,
-	input wire  [DATA_W*2-1:0]   	InDestVid,    
-    input wire  [DATA_W*2-1:0]   	InUpdate,    
-    output wire [DATA_W*2-1:0]   	OutUpdate,
-    output wire [DATA_W*2-1:0]  	OutDestVid,
-	output wire [1:0]  				OutValid
-);
-
- 
-CaC #(.DATA_W(DATA_W), .PIPE_DEPTH(PIPE_DEPTH))
-stage00 (
-	.clk(clk),
-	.rst(rst),
-	.InputValid_A(InputValid[0:0]),
-	.InputValid_B(InputValid[1:1]),
-	.InDestVid_A(InDestVid[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InDestVid_B(InDestVid[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.InUpdate_A(InUpdate[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.InUpdate_B(InUpdate[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutUpdate_A(OutUpdate[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutUpdate_B(OutUpdate[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutDestVid_A(OutDestVid[DATA_W*0+DATA_W-1:DATA_W*0]),
-	.OutDestVid_B(OutDestVid[DATA_W*1+DATA_W-1:DATA_W*1]),
-	.OutValid_A(OutValid[0:0]),
-	.OutValid_B(OutValid[1:1])
-);
-
-endmodule
-
-
 module CaC # (
 	parameter DATA_W = 32,
-	parameter PIPE_DEPTH = 8
+	parameter PIPE_DEPTH = 3
 )(
 	input wire          		clk,
     input wire          		rst,    
@@ -1877,6 +1745,47 @@ end
 
 endmodule
 
+/*module bram #(
+    parameter DATA = 1,
+    parameter ADDR = 16
+) (
+    // Port A
+    input   wire                clk,
+    input   wire                a_wr,
+    input   wire    [ADDR-1:0]  a_addr,
+    input   wire    [DATA-1:0]  a_din,
+    output  reg     [DATA-1:0]  a_dout,
+     
+    // Port B
+    //input   wire                b_clk,
+    input   wire                b_wr,
+    input   wire    [ADDR-1:0]  b_addr,
+    input   wire    [DATA-1:0]  b_din,
+    output  reg     [DATA-1:0]  b_dout
+);
+ 
+(* ram_style="block" *) reg [DATA-1:0] mem [(2**ADDR)-1:0];
+ 
+// Port A
+always @(posedge clk) begin
+    a_dout      <= mem[a_addr];
+    if(a_wr) begin
+        a_dout      <= a_din;
+        mem[a_addr] <= a_din;
+    end
+end
+
+// Port B
+always @(posedge clk) begin
+    b_dout      <= mem[b_addr];
+    if(b_wr && (~a_wr || b_addr != a_addr)) begin
+        b_dout      <= b_din;
+        mem[b_addr] <= b_din;
+    end
+end
+
+endmodule
+*/
 module bcrx8 # (parameter EDGE_W = 96, parameter Bank_Num_W = 5)
 (
 	input wire 					clk,	
@@ -2110,12 +2019,12 @@ module fifo #(
     reg  [FIFO_DEPTH_BITS - 1:0]        rp;
     reg  [FIFO_DEPTH_BITS - 1:0]        wp;
 
-`ifdef VENDOR_XILINX    
-    (* ram_extract = "yes", ram_style = "block" *)
+//`ifdef VENDOR_XILINX    
+    //(* ram_extract = "yes", ram_style = "block" *)
+    //reg  [FIFO_WIDTH - 1:0]         mem[2**FIFO_DEPTH_BITS-1:0];
+//`else
     reg  [FIFO_WIDTH - 1:0]         mem[2**FIFO_DEPTH_BITS-1:0];
-`else
-    reg  [FIFO_WIDTH - 1:0]         mem[2**FIFO_DEPTH_BITS-1:0];
-`endif
+//`endif
         
         
     always @(posedge clk) begin
@@ -2216,20 +2125,19 @@ module hdu_unit # (
             flag <= bram_flag_outA;            
         end    
     end 
-	 /*
-    bram # (.DATA(1),  .ADDR(ADDR_W))
-    hdu_ram(
-        .clk(clk),
-        .a_wr(Raddr_valid),
-        .a_addr(Raddr),
-        .a_din(1'b1),
-        .a_dout(bram_flag_outA),
-        .b_wr(Waddr_valid),
-        .b_addr(Waddr),
-        .b_din(1'b0),
-        .b_dout(bram_flag_outB)
-    );  */
-	  mlab bram(
+//    bram # (.DATA(1),  .ADDR(ADDR_W))
+//    hdu_ram(
+//        .clk(clk),
+//        .a_wr(Raddr_valid),
+//        .a_addr(Raddr),
+//        .a_din(1'b1),
+//        .a_dout(bram_flag_outA),
+//        .b_wr(Waddr_valid),
+//        .b_addr(Waddr),
+//        .b_din(1'b0),
+//        .b_dout(bram_flag_outB)
+//    );    
+m20k bram(
 		  .clock(clk),
         .wren_a(Raddr_valid),
         .address_a(Raddr),
@@ -2239,7 +2147,7 @@ module hdu_unit # (
         .address_b(Waddr),
         .data_b(1'b0),
         .q_b(bram_flag_outB)		
-	  );	
+	  );
 endmodule
 
 module bufferx8 # (parameter DATA_W = 32, parameter ADDR_W =16, parameter Bank_Num_W = 5)
@@ -2314,21 +2222,19 @@ wire 			  				bank_w_en  	[Bank_Num-1:0];
 reg	 [Bank_Num_W-1:0] 		  	sel		 	[Bank_Num-1:0];
 
 genvar numbank; 
-
 generate for(numbank=0; numbank < Bank_Num; numbank = numbank+1) 
 	begin: elements	
-	/*
-		URAM #(.DATA_W(DATA_W), .ADDR_W(ADDR_W-Bank_Num_W))
-		bank (
-			.Data_in(bank_wdata[numbank]),
-			.R_Addr(bank_raddr[numbank]),
-			.W_Addr(bank_waddr[numbank]),
-			.W_En(bank_w_en[numbank]),
-			.En(1'b1),
-			.clk(clk),
-			.Data_out(bank_rdata[numbank])
-		);*/
-	m20k bank(
+//		URAM #(.DATA_W(DATA_W), .ADDR_W(ADDR_W-Bank_Num_W))
+//		bank (
+//			.Data_in(bank_wdata[numbank]),
+//			.R_Addr(bank_raddr[numbank]),
+//			.W_Addr(bank_waddr[numbank]),
+//			.W_En(bank_w_en[numbank]),
+//			.En(1'b1),
+//			.clk(clk),
+//			.Data_out(bank_rdata[numbank])
+//		);
+bank buffer(
 		.data(bank_wdata[numbank]),
 		.rdaddress(bank_raddr[numbank]),
 		.wraddress(bank_waddr[numbank]),
@@ -2338,70 +2244,6 @@ generate for(numbank=0; numbank < Bank_Num; numbank = numbank+1)
 	);	
 	end
 endgenerate	
-
-
-/*	esram u0 (
-		.c0_data_0       (bank_wdata[0]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c0_rdaddress_0  (bank_raddr[0]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c0_rden_n_0     (R_valid0),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c0_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c0_wraddress_0  (bank_waddr[0]),  //   input,  width = 15,           .s2c0_adra_0
-		.c0_wren_n_0     (bank_w_en[0]),     //   input,   width = 1,           .s2c0_mea_n_0
-		.c1_data_0       (bank_wdata[1]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c1_rdaddress_0  (bank_raddr[1]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c1_rden_n_0     (R_valid1),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c1_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c1_wraddress_0  (bank_waddr[1]),  //   input,  width = 15,           .s2c0_adra_0
-		.c1_wren_n_0     (bank_w_en[1]),
-		.c2_data_0       (bank_wdata[2]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c2_rdaddress_0  (bank_raddr[2]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c2_rden_n_0     (R_valid2),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c2_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c2_wraddress_0  (bank_waddr[2]),  //   input,  width = 15,           .s2c0_adra_0
-		.c2_wren_n_0     (bank_w_en[2]),
-		.c3_data_0       (bank_wdata[3]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c3_rdaddress_0  (bank_raddr[3]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c3_rden_n_0     (R_valid3),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c3_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c3_wraddress_0  (bank_waddr[3]),  //   input,  width = 15,           .s2c0_adra_0
-		.c3_wren_n_0     (bank_w_en[3]),
-		.c4_data_0       (bank_wdata[4]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c4_rdaddress_0  (bank_raddr[4]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c4_rden_n_0     (R_valid4),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c4_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c4_wraddress_0  (bank_waddr[4]),  //   input,  width = 15,           .s2c0_adra_0
-		.c4_wren_n_0     (bank_w_en[4]),
-		.c5_data_0       (bank_wdata[5]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c5_rdaddress_0  (bank_raddr[5]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c5_rden_n_0     (R_valid5),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c5_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c5_wraddress_0  (bank_waddr[5]),  //   input,  width = 15,           .s2c0_adra_0
-		.c5_wren_n_0     (bank_w_en[5]),
-		.c6_data_0       (bank_wdata[6]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c6_rdaddress_0  (bank_raddr[6]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c6_rden_n_0     (R_valid6),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c6_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c6_wraddress_0  (bank_waddr[6]),  //   input,  width = 15,           .s2c0_adra_0
-		.c6_wren_n_0     (bank_w_en[6]),
-		.c7_data_0       (bank_wdata[7]),       //   input,  width = 64,  ram_input.s2c0_da_0
-		.c7_rdaddress_0  (bank_raddr[7]),  //   input,  width = 15,           .s2c0_adrb_0
-		.c7_rden_n_0     (R_valid7),     //   input,   width = 1,           .s2c0_meb_n_0
-		.c7_sd_n_0       (1'b1),       //   input,   width = 1,           .s2c0_sd_n_0
-		.c7_wraddress_0  (bank_waddr[7]),  //   input,  width = 15,           .s2c0_adra_0
-		.c7_wren_n_0     (bank_w_en[7]),
-		.refclk          (clk),          //   input,   width = 1,           .clock
-		.c0_q_0          (bank_rdata[0]),          //  output,  width = 64, ram_output.s2c0_qb_0
-		.c1_q_0          (bank_rdata[1]),          //  output,  width = 64,           .s2c1_qb_0
-		.c2_q_0          (bank_rdata[2]),          //  output,  width = 64,           .s2c2_qb_0
-		.c3_q_0          (bank_rdata[3]),          //  output,  width = 64,           .s2c3_qb_0
-		.c4_q_0          (bank_rdata[4]),          //  output,  width = 64,           .s2c4_qb_0
-		.c5_q_0          (bank_rdata[5]),          //  output,  width = 64,           .s2c5_qb_0
-		.c6_q_0          (bank_rdata[6]),          //  output,  width = 64,           .s2c6_qb_0
-		.c7_q_0          (bank_rdata[7]),          //  output,  width = 64,           .s2c7_qb_0
-		.esram2f_clk     (),     //  output,   width = 1,           .esram2f_clk
-		.iopll_lock2core ()  //  output,   width = 1,           .iopll_lock2core
-	);
-*/
 	
 genvar i;
 generate for(i=0; i<Bank_Num; i=i+1)  
@@ -2494,7 +2336,42 @@ always @(posedge clk) begin
 end
 endmodule
 
+/*module URAM(
+	Data_in,	// W
+	R_Addr,	// R
+	W_Addr,	// W
+	W_En,	// W
+	En,
+	clk,
+	Data_out	// R
+	);
+parameter DATA_W = 256;
+parameter ADDR_W = 10;
+localparam DEPTH = (2**ADDR_W);
 
+input [DATA_W-1:0] Data_in;
+input [ADDR_W-1:0] R_Addr, W_Addr;
+input W_En;
+input En;
+input clk;
+output reg [DATA_W-1:0] Data_out;
+
+(* ram_style="ultra" *) reg [DATA_W-1:0] ram [DEPTH-1:0];
+integer i;
+initial for (i=0; i<DEPTH; i=i+1) begin
+	ram[i] = 0;  	
+end
+always @(posedge clk) begin
+	if (En) begin
+		Data_out <= ram[R_Addr];
+		if (W_En) begin
+			ram[W_Addr] <= Data_in;
+		end
+	end	
+end    
+					
+endmodule	
+*/
 module Ubuffx8(
     input wire clk,
     input wire rst,    
@@ -2787,296 +2664,11 @@ end
   
 endmodule
 
-module Ubuffx4(
-    input wire clk,
-    input wire rst,    
-    input wire last_input_in,
-    input wire [64*4-1:0] word_in,
-	input wire [3:0] word_in_valid,
-    //input wire [1:0] control,        
-    output reg [64*8-1:0] word_out, 
-    output reg [7:0] valid_out
-);
-
-reg [2:0]	counter;
-reg	[63:0]	update_buff [6:0];
-
-integer i;
-	
-always @ (posedge clk) begin
-	if (rst) begin
-		counter <=0;
-		word_out <=0;
-		valid_out <=8'b00000000;
-		for(i=0; i<7; i=i+1) begin 
-			update_buff [i] <=0;            
-		end
-	end else begin		
-		counter <= counter;				
-		for(i=0; i<7; i=i+1) begin 
-			update_buff [i] <= update_buff [i] ;            
-		end
-		word_out  <= 0;
-		valid_out <= 8'b00000000;
-		if(last_input_in) begin			
-			valid_out	<= (counter == 0) ? 8'b00000000 :
-			               (counter == 1) ? 8'b10000000 :
-						   (counter == 2) ? 8'b11000000 :
-						   (counter == 3) ? 8'b11100000 :
-						   (counter == 4) ? 8'b11110000 :
-						   (counter == 5) ? 8'b11111000 :
-						   (counter == 6) ? 8'b11111100 : 8'b11111110;						   
-			word_out	<= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], 64'h000000000000000};	
-			counter		<= 0;
-		end else begin								
-			case(word_in_valid)					
-				4'b1000: begin                    
-					if(counter<7) begin
-					   counter <= counter +1;
-					   update_buff[counter] <= word_in[511-256:448-256]; 
-					   valid_out <= 8'b00000000;
-					end else begin
-					   counter <= 0;
-					   valid_out <=8'b11111111;
-					   word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], word_in[511-256:448-256]}; 
-					end                        
-				end
-				4'b1100: begin                    
-				   if(counter<6) begin
-					  counter <= counter +2;
-					  valid_out <= 8'b00000000;
-					  update_buff[counter]   <= word_in[511-256:448-256]; 
-					  update_buff[counter+1] <= word_in[447-256:384-256]; 
-				   end else if (counter==6) begin
-					  counter <= 0;
-					  valid_out <=8'b11111111;
-					  word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5], word_in[511-256:384-256]};
-				  end else begin
-					  counter <= 1;
-					  valid_out <= 8'b11111111;
-					  word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], word_in[511-256:448-256]}; 
-					  update_buff[0] <= word_in[447-256:384-256];       
-				   end                       
-			   end
-			   4'b1110: begin                    
-				  if(counter<5) begin
-					 counter <= counter +3;
-					 valid_out <= 8'b00000000;
-					 update_buff[counter]   <= word_in[511-256:448-256]; 
-					 update_buff[counter+1] <= word_in[447-256:384-256]; 
-					 update_buff[counter+2] <= word_in[383-256:320-256]; 
-				  end else if (counter==5) begin
-					 counter  	<= 0;
-					 valid_out 	<= 8'b11111111;
-					 word_out  	<= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4], word_in[511-256:320-256]};
-				 end else if (counter==6) begin
-					 counter <= 1;
-					 valid_out <= 8'b11111111;
-					 word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5], word_in[511-256:384-256]};
-					 update_buff[0] <= word_in[383-256:320-256];                             
-				  end else begin
-					 counter 	<= 2;
-					 valid_out 	<=8'b11111111;
-					 word_out 	<= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], word_in[511-256:448-256]};
-					 update_buff[0] <= word_in[447-256:384-256]; 
-					 update_buff[1] <= word_in[383-256:320-256]; 
-				  end                                        
-			   end
-			   4'b1111: begin                    
-					 if(counter<4) begin
-						counter <= counter +4;
-						valid_out <= 8'b00000000;
-						update_buff[counter]   <= word_in[511-256:448-256]; 
-						update_buff[counter+1] <= word_in[447-256:384-256]; 
-						update_buff[counter+2] <= word_in[383-256:320-256]; 
-						update_buff[counter+3] <= word_in[319-256:256-256];
-					 end else if (counter==4) begin
-						counter <= 0;
-						valid_out <=8'b11111111;
-						word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3], word_in[511-256:256-256]};
-					end else if (counter==5) begin
-						counter <= 1;
-						valid_out <=8'b11111111;
-						word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],word_in[511-256:320-256]}; 
-						update_buff[0] <= word_in[319-256:256-256];                                
-					 end else if (counter==6) begin
-						 counter <= 2;
-						 valid_out <=8'b11111111;
-						 word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],word_in[511-256:384-256]};
-						 update_buff[0] <= word_in[383-256:320-256]; 
-						 update_buff[1] <= word_in[319-256:256-256];                   
-					 end else begin
-						counter <= 3;
-						valid_out <=8'b11111111;
-						word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6],word_in[511-256:448-256]};
-						update_buff[0] <= word_in[447-256:384-256]; 
-						update_buff[1] <= word_in[383-256:320-256];  
-						update_buff[2] <= word_in[319-256:256-256];
-					 end                                        
-				end			   
-				default: begin                    											   
-					valid_out <=8'b00000000;
-					word_out <= {word_in,word_in};					                                          
-				end						
-			endcase	
-		end  
-	end         
-end
-  
-endmodule
-
-module Ubuffx2(
-    input wire clk,
-    input wire rst,    
-    input wire last_input_in,
-    input wire [64*2-1:0] word_in,
-	input wire [1:0] word_in_valid,
-    //input wire [1:0] control,        
-    output reg [64*8-1:0] word_out, 
-    output reg [7:0] valid_out
-);
-
-reg [2:0]	counter;
-reg	[63:0]	update_buff [6:0];
-
-integer i;
-	
-always @ (posedge clk) begin
-	if (rst) begin
-		counter <=0;
-		word_out <=0;
-		valid_out <=8'b00000000;
-		for(i=0; i<7; i=i+1) begin 
-			update_buff [i] <=0;            
-		end
-	end else begin		
-		counter <= counter;				
-		for(i=0; i<7; i=i+1) begin 
-			update_buff [i] <= update_buff [i] ;            
-		end
-		word_out  <= 0;
-		valid_out <= 8'b00000000;
-		if(last_input_in) begin			
-			valid_out	<= (counter == 0) ? 8'b00000000 :
-			               (counter == 1) ? 8'b10000000 :
-						   (counter == 2) ? 8'b11000000 :
-						   (counter == 3) ? 8'b11100000 :
-						   (counter == 4) ? 8'b11110000 :
-						   (counter == 5) ? 8'b11111000 :
-						   (counter == 6) ? 8'b11111100 : 8'b11111110;						   
-			word_out	<= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], 64'h000000000000000};	
-			counter		<= 0;
-		end else begin								
-			case(word_in_valid)					
-				2'b10: begin                    
-					if(counter<7) begin
-					   counter <= counter +1;
-					   update_buff[counter] <= word_in[511-256-128:448-256-128]; 
-					   valid_out <= 8'b00000000;
-					end else begin
-					   counter <= 0;
-					   valid_out <=8'b11111111;
-					   word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], word_in[511-256-128:448-256-128]}; 
-					end                        
-				end
-				2'b11: begin                    
-					if(counter<6) begin
-					  counter <= counter +2;
-					  valid_out <= 8'b00000000;
-					  update_buff[counter]   <= word_in[511-256-128:448-256-128]; 
-					  update_buff[counter+1] <= word_in[447-256-128:384-256-128]; 
-					end else if (counter==6) begin
-					  counter <= 0;
-					  valid_out <=8'b11111111;
-					  word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5], word_in[511-256-128:384-256-128]};
-					end else begin
-					  counter <= 1;
-					  valid_out <= 8'b11111111;
-					  word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], word_in[511-256-128:448-256-128]}; 
-					  update_buff[0] <= word_in[447-256-128:384-256-128];       
-					end                       
-				end				   
-				default: begin                    											   
-					valid_out <=8'b00000000;
-					word_out <= {word_in,word_in};					                                          
-				end						
-			endcase	
-		end  
-	end         
-end
-  
-endmodule
-
-module Ubuffx1(
-    input wire clk,
-    input wire rst,    
-    input wire last_input_in,
-    input wire [64-1:0] word_in,
-	input wire word_in_valid,
-    //input wire [1:0] control,        
-    output reg [64*8-1:0] word_out, 
-    output reg [7:0] valid_out
-);
-
-reg [2:0]	counter;
-reg	[63:0]	update_buff [6:0];
-
-integer i;
-	
-always @ (posedge clk) begin
-	if (rst) begin
-		counter <=0;
-		word_out <=0;
-		valid_out <=8'b00000000;
-		for(i=0; i<7; i=i+1) begin 
-			update_buff [i] <=0;            
-		end
-	end else begin		
-		counter <= counter;				
-		for(i=0; i<7; i=i+1) begin 
-			update_buff [i] <= update_buff [i] ;            
-		end
-		word_out  <= 0;
-		valid_out <= 8'b00000000;
-		if(last_input_in) begin			
-			valid_out	<= (counter == 0) ? 8'b00000000 :
-			               (counter == 1) ? 8'b10000000 :
-						   (counter == 2) ? 8'b11000000 :
-						   (counter == 3) ? 8'b11100000 :
-						   (counter == 4) ? 8'b11110000 :
-						   (counter == 5) ? 8'b11111000 :
-						   (counter == 6) ? 8'b11111100 : 8'b11111110;						   
-			word_out	<= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], 64'h000000000000000};	
-			counter		<= 0;
-		end else begin								
-			case(word_in_valid)					
-				1'b1: begin                    
-					if(counter<7) begin
-					   counter <= counter +1;
-					   update_buff[counter] <= word_in; 
-					   valid_out <= 8'b00000000;
-					end else begin
-					   counter <= 0;
-					   valid_out <=8'b11111111;
-					   word_out <= {update_buff[0],update_buff[1],update_buff[2],update_buff[3],update_buff[4],update_buff[5],update_buff[6], word_in}; 
-					end                        
-				end				   
-				default: begin                    											   
-					valid_out <=8'b00000000;
-					word_out <= {word_in,word_in};					                                          
-				end						
-			endcase	
-		end  
-	end         
-end
-  
-endmodule
-
-module pr_PP # (
-    parameter PIPE_DEPTH = 8,
-    parameter URAM_DATA_W = 64,
+module spmv_PP # (
+    parameter PIPE_DEPTH = 5,
+    parameter URAM_DATA_W = 32,
     parameter PAR_SIZE_W = 10,
-    parameter EDGE_W = 64
+    parameter EDGE_W = 96
 )(
     input wire                      clk,
     input wire                      rst,     
@@ -3106,11 +2698,11 @@ module pr_PP # (
         end
       end
        
-    pr_scatter_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W))
+    spmv_scatter_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W))
     scatter_unit (
         .clk(clk),
         .rst(rst),
-        .edge_weight(),
+        .edge_weight(input_word_reg[95:64]),
         .src_attr(buffer_Dout),
         .edge_dest(input_word_reg[63:32]),
         .input_valid(input_valid_reg && buffer_Din_valid && control==1),    
@@ -3119,7 +2711,7 @@ module pr_PP # (
         .output_valid(output_valid)
     );
 
-    pr_gather_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .PAR_SIZE_W(PAR_SIZE_W), .URAM_DATA_W(URAM_DATA_W))
+    spmv_gather_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .PAR_SIZE_W(PAR_SIZE_W))
     gather_unit (
         .clk(clk),
         .rst(rst),
@@ -3135,18 +2727,18 @@ module pr_PP # (
     
 endmodule
 
-module pr_gather_pipe # (
-    parameter PIPE_DEPTH = 8,
-    parameter PAR_SIZE_W = 18,
-    parameter URAM_DATA_W = 64
+
+module spmv_gather_pipe # (
+    parameter PIPE_DEPTH = 3,
+    parameter PAR_SIZE_W = 18
 )(
     input wire                      clk,
-    input wire                      rst,  
+    input wire                      rst,        
     input wire [31:0]               update_value,
     input wire [31:0]               update_dest,
-    input wire [URAM_DATA_W-1:0]    dest_attr,
+    input wire [63:0]               dest_attr,
     input wire [0:0]                input_valid,    
-    output wire [URAM_DATA_W-1:0]   WData,
+    output wire [63:0]              WData,
     output wire [PAR_SIZE_W-1:0]    WAddr,    
     output wire [0:0]               Wvalid,
     output wire [0:0]               par_active  
@@ -3174,17 +2766,18 @@ module pr_gather_pipe # (
 			dest_attr_reg [0] <= dest_attr [63:32];
         end
     end    
-    /* 
-    fp_add adder(              
+    
+   /* fp_add adder(              
         .aclk(clk),
         .s_axis_a_tvalid(input_valid),        
         .s_axis_a_tdata(update_value),
         .s_axis_b_tvalid(input_valid),
         .s_axis_b_tdata(dest_attr[31:0]),
-        .m_axis_result_tvalid (Wvalid),     
+        .m_axis_result_tvalid (Wvalid),
+        //.m_axis_result_tready(1'b1),      
         .m_axis_result_tdata(WData[31:0])              
-    );*/	
-	 add add(
+    );*/
+	 	 add add(
 	.clk(clk),
 	.a(update_value),
 	.b(dest_attr[31:0]),
@@ -3194,15 +2787,14 @@ module pr_gather_pipe # (
 	
 
 );
-	
     assign WData[63:32] = dest_attr_reg [PIPE_DEPTH-1];
 	
 endmodule
 
 
-module pr_scatter_pipe # (
-    parameter PIPE_DEPTH = 8,
-    parameter URAM_DATA_W = 64
+module spmv_scatter_pipe # (
+    parameter PIPE_DEPTH = 3,
+    parameter URAM_DATA_W = 32
 )(
     input wire                      clk,
     input wire                      rst,    
@@ -3230,129 +2822,24 @@ module pr_scatter_pipe # (
             dest_reg [0] <=  edge_dest;            
         end
     end
-    /*
-    fp_mul multiplier(              
+    
+   /* fp_mul multiplier(              
         .aclk(clk),
         .s_axis_a_tvalid(input_valid),        
-        .s_axis_a_tdata(src_attr[31:0]),
+        .s_axis_a_tdata(edge_weight),
         .s_axis_b_tvalid(input_valid),
-        .s_axis_b_tdata(src_attr[63:32]),
-        .m_axis_result_tvalid (output_valid),      
+        .s_axis_b_tdata(src_attr),
+        .m_axis_result_tvalid (output_valid),
+        //.m_axis_result_tready(1'b1),      
         .m_axis_result_tdata(update_value)              
     );*/
-	 mult mult(
+	 	 mult mult(
 	.clk(clk),
-	.a(src_attr[31:0]),
-	.b(src_attr[63:32]),
+	.a(edge_weight),
+	.b(src_attr),
 	.q(update_value),
 	.areset(rst),
 	.en(input_valid)
 );
     
 endmodule
-
-module combine_unit (
- 	 input wire clk,
-	 input wire rst,
- 	 input wire [31:0] update_A, 
- 	 input wire [31:0] update_B, 
-	 output wire [31:0] combined_update
-);
-	/*
-	fp_add adder(
-		.aclk(clk), 
-		.s_axis_a_tvalid(1'b1),
-		.s_axis_a_tdata(update_A),
-		.s_axis_b_tvalid(1'b1),
-		.s_axis_b_tdata(update_B),
-		.m_axis_result_tdata(combined_update)
-	);*/
-	add add(
-	.clk(clk),
-	.a(update_A),
-	.b(update_B),
-	.q(combined_update),
-	.areset(rst),
-	.en(1'b1)
-);
-	
-endmodule
-/*
-module URAM(
-	Data_in,	// W
-	R_Addr,	// R
-	W_Addr,	// W
-	W_En,	// W
-	En,
-	clk,
-	Data_out	// R
-	);
-parameter DATA_W = 256;
-parameter ADDR_W = 18;
-localparam DEPTH = (2 ** ADDR_W);
-
-input [DATA_W-1:0] Data_in;
-input [ADDR_W-1:0] R_Addr, W_Addr;
-input W_En;
-input En;
-input clk;
-output reg [DATA_W-1:0] Data_out;
-
-//(* ram_style="ultra" *) reg [DATA_W-1:0] ram [DEPTH-1:0];
-(* ram_style="block" *) reg [DATA_W-1:0] ram [DEPTH-1:0];
-integer i;
-//initial for (i=0; i<DEPTH; i=i+1) begin
-initial for (i=0; i<DEPTH; i=i+1) begin
-	ram[i] = 0;  	
-end
-always @(posedge clk) begin
-	if (En) begin
-		Data_out <= ram[R_Addr];
-		if (W_En) begin
-			ram[W_Addr] <= Data_in;
-		end
-	end	
-end    
-					
-endmodule	
-
-module bram #(
-    parameter DATA = 1,
-    parameter ADDR = 16
-) (
-    // Port A
-    input   wire                clk,
-    input   wire                a_wr,
-    input   wire    [ADDR-1:0]  a_addr,
-    input   wire    [DATA-1:0]  a_din,
-    output  reg     [DATA-1:0]  a_dout,
-     
-    // Port B
-    //input   wire                b_clk,
-    input   wire                b_wr,
-    input   wire    [ADDR-1:0]  b_addr,
-    input   wire    [DATA-1:0]  b_din,
-    output  reg     [DATA-1:0]  b_dout
-);
- 
-(* ram_style="block" *) reg [DATA-1:0] mem [(2**ADDR)-1:0];
- 
-// Port A
-always @(posedge clk) begin
-    a_dout      <= mem[a_addr];
-    if(a_wr) begin
-        a_dout      <= a_din;
-        mem[a_addr] <= a_din;
-    end
-end
-
-// Port B
-always @(posedge clk) begin
-    b_dout      <= mem[b_addr];
-    if(b_wr && (~a_wr || b_addr != a_addr)) begin
-        b_dout      <= b_din;
-        mem[b_addr] <= b_din;
-    end
-end
-
-endmodule*/

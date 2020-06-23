@@ -1,23 +1,24 @@
-module spmv #(parameter EDGE_W = 96)(
-	 input wire  clk,
-	 input wire  rst,
-	 input wire  start,
-	 input wire  [EDGE_W-1:0] RData,
-	 input wire  RDataV,
-	 input wire 	r_en0,
-	 input wire 	w_en0,
-	 output wire WDataV0,
-	 input wire 	r_en1,
-	 input wire 	w_en1,
-	 output wire WDataV1,
-	 input wire 	r_en2,
-	 input wire 	w_en2,
-	 output wire WDataV2,
-	 input wire 	r_en3,
-	 input wire 	w_en3,
-	 output wire WDataV3,
-		output reg [31:0]	RAddr,
-		output reg [511:0] WData);
+module wcc #(parameter EDGE_W = 64)(
+	input wire  clk,
+	input wire  rst,
+	input wire  start,
+	input wire  [EDGE_W-1:0] RData,
+	input wire  RDataV,
+	input wire 	r_en0,
+	input wire 	w_en0,
+	output wire WDataV0,
+	input wire 	r_en1,
+	input wire 	w_en1,
+	output wire WDataV1,
+	input wire 	r_en2,
+	input wire 	w_en2,
+	output wire WDataV2,
+	input wire 	r_en3,
+	input wire 	w_en3,
+	output wire WDataV3,
+	output reg [31:0]	RAddr,
+	output reg [511:0] WData
+);
 reg [EDGE_W-1:0]  RData_reg [31:0];
 reg [4:0]   counter;
 integer i;
@@ -37,7 +38,7 @@ always @(posedge clk) begin
 end
 wire [31:0]	RAddr_wire [3:0];
 wire [511:0]	WData_wire [3:0];
-sspmv accelerator(
+wccc accelerator(
 	 .clk(clk),
 	 .rst(rst),
 	 .RData0({RData_reg[0],RData_reg[1],RData_reg[2],RData_reg[3],RData_reg[4],RData_reg[5],RData_reg[6],RData_reg[7]}),
@@ -80,15 +81,15 @@ always @(posedge clk) begin
 end
 endmodule
 
-module sspmv #(
- 	 parameter FIFO_WIDTH = 768,
+module wccc #(
+ 	 parameter FIFO_WIDTH = 512,
  	 parameter PIPE_DEPTH = 5, 
  	 parameter URAM_DATA_W = 32,
  	 parameter PAR_SIZE_W = 18,
  	 parameter Bank_Num_W = 4,
  	 parameter PAR_NUM   = 32,
  	 parameter PAR_NUM_W = 5,
- 	 parameter EDGE_W = 96,
+ 	 parameter EDGE_W = 64,
  	 parameter PIPE_NUM = 8,
  	 parameter PIPE_NUM_W = 3
 )(
@@ -241,14 +242,14 @@ endgenerate
 endmodule
 
 module PE #(
- 	 parameter FIFO_WIDTH = 768,
+ 	 parameter FIFO_WIDTH = 512,
  	 parameter PIPE_DEPTH = 5, 
  	 parameter URAM_DATA_W = 32,
  	 parameter PAR_SIZE_W = 18,
  	 parameter Bank_Num_W = 4,
  	 parameter PAR_NUM   = 32,
  	 parameter PAR_NUM_W = 5,
- 	 parameter EDGE_W = 96,
+ 	 parameter EDGE_W = 64,
  	 parameter PIPE_NUM = 8,
  	 parameter PIPE_NUM_W = 3
 )(
@@ -341,7 +342,7 @@ module PE #(
 	 	 end
 	 end
 
-	 fifo #(.FIFO_WIDTH(FIFO_WIDTH)) input_FIFO(
+	fifo #(.FIFO_WIDTH(FIFO_WIDTH)) input_FIFO(
 	 	 .clk(clk),
 	 	 .rst(rst),
 	 	 .we(input_valid),
@@ -381,47 +382,11 @@ module PE #(
 	 );
 
 	 genvar pp_num;
-	 wire [0:0] HDU_stall;
-	 assign PE_stall = (HDU_stall && (control==2)) || stall_request || se_request;
-	 hdux8 # (.ADDR_W(PAR_SIZE_W), .Bank_Num_W (Bank_Num_W)) HDU (
-	 	 .clk(clk),
-	 	 .rst(rst),
-	 	 .Raddr0(pp_input_word[EDGE_W*0+PAR_SIZE_W-1:EDGE_W*0]),
-	 	 .Raddr1(pp_input_word[EDGE_W*1+PAR_SIZE_W-1:EDGE_W*1]),
-	 	 .Raddr2(pp_input_word[EDGE_W*2+PAR_SIZE_W-1:EDGE_W*2]),
-	 	 .Raddr3(pp_input_word[EDGE_W*3+PAR_SIZE_W-1:EDGE_W*3]),
-	 	 .Raddr4(pp_input_word[EDGE_W*4+PAR_SIZE_W-1:EDGE_W*4]),
-	 	 .Raddr5(pp_input_word[EDGE_W*5+PAR_SIZE_W-1:EDGE_W*5]),
-	 	 .Raddr6(pp_input_word[EDGE_W*6+PAR_SIZE_W-1:EDGE_W*6]),
-	 	 .Raddr7(pp_input_word[EDGE_W*7+PAR_SIZE_W-1:EDGE_W*7]),
-	 	 .Waddr0(buffer_DW_Addr[0]),
-	 	 .Waddr1(buffer_DW_Addr[1]),
-	 	 .Waddr2(buffer_DW_Addr[2]),
-	 	 .Waddr3(buffer_DW_Addr[3]),
-	 	 .Waddr4(buffer_DW_Addr[4]),
-	 	 .Waddr5(buffer_DW_Addr[5]),
-	 	 .Waddr6(buffer_DW_Addr[6]),
-	 	 .Waddr7(buffer_DW_Addr[7]),
-	 	 .Raddr_valid0(control==2 && pp_input_word_valid[0]),
-	 	 .Raddr_valid1(control==2 && pp_input_word_valid[1]),
-	 	 .Raddr_valid2(control==2 && pp_input_word_valid[2]),
-	 	 .Raddr_valid3(control==2 && pp_input_word_valid[3]),
-	 	 .Raddr_valid4(control==2 && pp_input_word_valid[4]),
-	 	 .Raddr_valid5(control==2 && pp_input_word_valid[5]),
-	 	 .Raddr_valid6(control==2 && pp_input_word_valid[6]),
-	 	 .Raddr_valid7(control==2 && pp_input_word_valid[7]),
-	 	 .Waddr_valid0(buffer_DW_valid[0] && control==2),
-	 	 .Waddr_valid1(buffer_DW_valid[1] && control==2),
-	 	 .Waddr_valid2(buffer_DW_valid[2] && control==2),
-	 	 .Waddr_valid3(buffer_DW_valid[3] && control==2),
-	 	 .Waddr_valid4(buffer_DW_valid[4] && control==2),
-	 	 .Waddr_valid5(buffer_DW_valid[5] && control==2),
-	 	 .Waddr_valid6(buffer_DW_valid[6] && control==2),
-	 	 .Waddr_valid7(buffer_DW_valid[7] && control==2),
-	 	 .stall_signal(HDU_stall));
+	 assign PE_stall = stall_request || se_request;
+	 wire [PAR_SIZE_W+URAM_DATA_W-1:0]	forward_input [PIPE_NUM-1:0];
 
 	 generate for(pp_num=0; pp_num <PIPE_NUM; pp_num = pp_num+1)
-	 	 begin: elements spmv_PP #(.PIPE_DEPTH(PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W), .PAR_SIZE_W(PAR_SIZE_W), .EDGE_W(EDGE_W)) pipeline (
+	 	 begin: elements PP #(.PIPE_DEPTH(PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W), .PAR_SIZE_W(PAR_SIZE_W), .EDGE_W(EDGE_W)) pipeline (
 	 	 	 .clk(clk),
 	 	 	 .rst(rst),
 	 	 	 .control(control),
@@ -434,7 +399,16 @@ module PE #(
 	 	 	 .buffer_Dout_valid(buffer_DW_valid[pp_num]),
 	 	 	 .output_word(pp_output_word[pp_num]),
 	 	 	 .output_valid(pp_output_valid[pp_num]),
-	 	 	 .par_active(par_active_wire[pp_num:pp_num]));
+	 	 	 .par_active(par_active_wire[pp_num:pp_num]),
+	 	 	 .forward_input0(forward_input[0]),
+	 	 	 .forward_input1(forward_input[1]),
+	 	 	 .forward_input2(forward_input[2]),
+	 	 	 .forward_input3(forward_input[3]),
+	 	 	 .forward_input4(forward_input[4]),
+	 	 	 .forward_input5(forward_input[5]),
+	 	 	 .forward_input6(forward_input[6]),
+	 	 	 .forward_input7(forward_input[7]),
+	 			 .forward_output(forward_input[pp_num]));
 	 	 end
 	 endgenerate
 
@@ -514,35 +488,114 @@ module combine_unit (
  	 input wire clk,
  	 input wire [31:0] update_A, 
  	 input wire [31:0] update_B, 
-	 output wire [31:0] combined_update
+	 output reg [31:0] combined_update
 );
-	/* fp_add adder(.aclk(clk),
-	 .s_axis_a_tvalid(1'b1),
-	 .s_axis_a_tdata(update_A),
-	 .s_axis_b_tvalid(1'b1),
-	 .s_axis_b_tdata(update_B),
-	 .m_axis_result_tdata(combined_update));
-	 
-	    fp_add adder(              
-        .aclk(clk),
-        .s_axis_a_tvalid(input_valid),        
-        .s_axis_a_tdata(update_value),
-        .s_axis_b_tvalid(input_valid),
-        .s_axis_b_tdata(dest_attr[31:0]),
-        .m_axis_result_tvalid (Wvalid),
-        //.m_axis_result_tready(1'b1),      
-        .m_axis_result_tdata(WData[31:0])              
-    );*/
-	 	 add add(
-	.clk(clk),
-	.a(update_A),
-	.b(update_B),
-	.q(combined_update),
-	.areset(rst),
-	.en(1'b1)
-	
+	 always @(posedge clk) begin
+	 	 combined_update <= (update_A>update_B) ? update_B : update_A;
+	 end
+endmodule
 
+module WCC_PP # (
+	 parameter PIPE_DEPTH = 5,
+	 parameter URAM_DATA_W = 32,
+	 parameter PAR_SIZE_W = 18,
+	 parameter EDGE_W = 64
+)(
+		input wire clk,
+	 input wire                      rst,
+	 input wire [1:0]                control,
+	 input wire [URAM_DATA_W-1:0]    buffer_Din,
+	 input wire                      buffer_Din_valid,
+	 input wire [EDGE_W-1:0]         input_word,
+	 input wire [0:0]                input_valid,
+	 output wire [URAM_DATA_W-1:0]   buffer_Dout,
+	 output wire [PAR_SIZE_W-1:0]    buffer_Dout_Addr,
+	 output wire                     buffer_Dout_valid,
+	 output wire [63:0]              output_word,
+	 output wire [0:0]               output_valid,
+	 output wire [0:0]               par_active,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input0,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input1,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input2,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input3,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input4,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input5,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input6,
+	 input wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_input7,
+	 output wire [PAR_SIZE_W+URAM_DATA_W:0]	forward_output
 );
+	 reg [EDGE_W-1:0] input_word_reg;
+	 reg [0:0]  input_valid_reg;
+	 wire [31:0] dest_attr;
+	 always @(posedge clk) begin if (rst) begin input_word_reg <= 0; input_valid_reg <= 0; end  else begin input_word_reg <= input_word; input_valid_reg <= input_valid; end end
+	 assign dest_attr =((control==2) && (forward_input0[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input0[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input0[URAM_DATA_W-1:0] : ((control==2) && (forward_input1[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input1[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input1[URAM_DATA_W-1:0] : ((control==2) && (forward_input2[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input2[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input2[URAM_DATA_W-1:0] : ((control==2) && (forward_input3[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input3[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input3[URAM_DATA_W-1:0] : ((control==2) && (forward_input4[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input4[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input4[URAM_DATA_W-1:0] : ((control==2) && (forward_input5[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input5[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input5[URAM_DATA_W-1:0] : ((control==2) && (forward_input6[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input6[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input6[URAM_DATA_W-1:0] : ((control==2) && (forward_input7[PAR_SIZE_W+URAM_DATA_W:PAR_SIZE_W+URAM_DATA_W]) && (input_word_reg[PAR_SIZE_W-1:0]==forward_input7[PAR_SIZE_W+URAM_DATA_W-1:URAM_DATA_W])) ? forward_input7[URAM_DATA_W-1:0] : buffer_Din;
+
+	 assign forward_output = {buffer_Dout_valid, buffer_Dout_Addr, buffer_Dout};
+	 wcc_scatter_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W)) scatter_unit (.clk(clk),.rst(rst),.src_attr(buffer_Dout),.edge_dest(input_word_reg[63:32]),.input_valid(input_valid_reg && buffer_Din_valid && control==1),    .update_value(output_word[63:32]),.update_dest(output_word[31:0]),.output_valid(output_valid));
+ 
+	 wcc_gather_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .PAR_SIZE_W(PAR_SIZE_W), .URAM_DATA_W(URAM_DATA_W)) gather_unit (.clk(clk),.rst(rst),.update_value(input_word_reg[63:32]),.update_dest(input_word_reg[31:0]),.dest_attr(dest_attr),.input_valid(input_valid_reg && buffer_Din_valid && control==2),.WData(buffer_Dout),.WAddr(buffer_Dout_Addr),.Wvalid(buffer_Dout_valid),.par_active(par_active));
+ 
+endmodule
+
+module wcc_gather_pipe # (
+    parameter PIPE_DEPTH = 1,
+    parameter PAR_SIZE_W = 18,
+    parameter URAM_DATA_W = 32
+)(
+    input wire                      clk,
+    input wire                      rst,        
+    input wire [31:0]               update_value,
+    input wire [31:0]               update_dest,
+    input wire [URAM_DATA_W-1:0]    dest_attr,
+    input wire [0:0]                input_valid,    
+    output reg [URAM_DATA_W-1:0]   WData,
+    output reg [PAR_SIZE_W-1:0]    WAddr,    
+    output reg [0:0]               Wvalid,
+    output reg [0:0]               par_active  
+);
+    always @(posedge clk) begin
+        if (rst) begin
+            WData <= 0;
+            WAddr <= 0;
+            Wvalid <= 0;
+            par_active <= 0;  
+        end  else begin
+            WAddr <= update_dest[PAR_SIZE_W-1:0];
+            WData[30:0] <= (update_value < dest_attr) ? update_value[30:0] : dest_attr[30:0];            
+            WData[31:31] <= input_valid && (update_value[30:0] < dest_attr[30:0]);
+            Wvalid <= input_valid && (update_value[30:0] < dest_attr[30:0]);
+            par_active <= input_valid && (update_value[30:0] < dest_attr[30:0]);
+        end
+     end     
+	
+endmodule
+
+
+module wcc_scatter_pipe # (
+    parameter PIPE_DEPTH = 3,
+    parameter URAM_DATA_W = 32
+)(
+    input wire                      clk,
+    input wire                      rst,    
+    input wire [15:0]               edge_weight,
+    input wire [URAM_DATA_W-1:0]    src_attr,
+    input wire [31:0]               edge_dest,
+    input wire [0:0]                input_valid,    
+    output reg [31:0]              update_value,
+    output reg [31:0]              update_dest,    
+    output reg [0:0]               output_valid  
+);
+    always @(posedge clk) begin
+        if (rst) begin
+            output_valid <= 0;
+            update_value <= 0;
+            update_dest <= 0;
+        end else begin
+            output_valid <= input_valid && src_attr[URAM_DATA_W-1:URAM_DATA_W-1];
+            update_value <= src_attr[URAM_DATA_W-2:0];
+            update_dest <= edge_dest;
+        end
+    end    
 endmodule
 
 module hdux8 # (
@@ -1569,80 +1622,6 @@ stage53 (
 
 endmodule
 
-module CaC # (
-	parameter DATA_W = 32,
-	parameter PIPE_DEPTH = 3
-)(
-	input wire          		clk,
-    input wire          		rst,    
-    input wire  [0:0]         	InputValid_A,
-    input wire  [0:0]         	InputValid_B,
-	input wire  [DATA_W-1:0]   	InDestVid_A,
-    input wire  [DATA_W-1:0]   	InDestVid_B,
-    input wire  [DATA_W-1:0]   	InUpdate_A,
-    input wire  [DATA_W-1:0]   	InUpdate_B,
-    output wire [DATA_W-1:0]   	OutUpdate_A,
-    output wire [DATA_W-1:0]   	OutUpdate_B,
-	output wire [DATA_W-1:0]  	OutDestVid_A,
-    output wire [DATA_W-1:0]  	OutDestVid_B,
-    output wire [0:0]  			OutValid_A,
-	output wire [0:0]  			OutValid_B
-);
-
-reg [0:0]			Valid_reg_A 	[PIPE_DEPTH-1:0];
-reg [0:0]			Valid_reg_B 	[PIPE_DEPTH-1:0];
-reg [DATA_W-1:0]	DestVid_reg_A 	[PIPE_DEPTH-1:0];
-reg [DATA_W-1:0]	DestVid_reg_B 	[PIPE_DEPTH-1:0];
-reg [DATA_W-1:0]	Update_reg_A 	[PIPE_DEPTH-1:0];
-reg [DATA_W-1:0]	Update_reg_B 	[PIPE_DEPTH-1:0];
-integer i;
-
-always @(posedge clk) begin
-	if (rst) begin
-		for(i=0; i<PIPE_DEPTH; i=i+1) begin 
-            Valid_reg_A [i] <= 0;    
-			Valid_reg_B [i] <= 0;
-			DestVid_reg_A [i] <= 0;
-			DestVid_reg_B [i] <= 0;
-			Update_reg_A [i] <= 0;
-			Update_reg_B [i] <= 0;
-        end 
-	end	else begin
-		Valid_reg_A[0] <= (InputValid_A & InputValid_B & InDestVid_B<InDestVid_A) ? InputValid_B : InputValid_A;
-		Valid_reg_B[0] <= (InputValid_A & InputValid_B & InDestVid_B>InDestVid_A) ? InputValid_A : InputValid_B;
-		DestVid_reg_A[0] <= (InputValid_A & InputValid_B & InDestVid_B<InDestVid_A) ? InDestVid_B : InDestVid_A;
-		DestVid_reg_B[0] <= (InputValid_A & InputValid_B & InDestVid_B>InDestVid_A) ? InDestVid_A : InDestVid_B;
-		Update_reg_A [0] <= (InputValid_A & InputValid_B & InDestVid_B<InDestVid_A) ? InUpdate_B : InUpdate_A;
-		Update_reg_B [0] <= (InputValid_A & InputValid_B & InDestVid_B>InDestVid_A) ? InUpdate_A : InUpdate_B;
-		for(i=1; i<PIPE_DEPTH; i=i+1) begin 
-            Valid_reg_A [i] <= Valid_reg_A [i-1];    
-			Valid_reg_B [i] <= Valid_reg_B [i-1];
-			DestVid_reg_A [i] <= DestVid_reg_A [i-1];
-			DestVid_reg_B [i] <= DestVid_reg_B [i-1];
-			Update_reg_A [i] <= Update_reg_A [i-1];
-			Update_reg_B [i] <= Update_reg_B [i-1];
-        end 		
-	end
-end
-	
-wire [DATA_W-1:0] result; 
-	
-combine_unit combiner(
-    .clk    (clk),    
-    .update_A (Update_reg_A [0]),    
-    .update_B (Update_reg_B [0]),                          
-    .combined_update (result)
-);  
-
-assign OutDestVid_A = 	DestVid_reg_A[PIPE_DEPTH-1];
-assign OutDestVid_B = 	DestVid_reg_A[PIPE_DEPTH-1];
-assign OutValid_A	= 	Valid_reg_A[PIPE_DEPTH-1];
-assign OutValid_B 	= 	(Valid_reg_A[PIPE_DEPTH-1] & Valid_reg_B[PIPE_DEPTH-1] & (DestVid_reg_A[PIPE_DEPTH-1]==DestVid_reg_B[PIPE_DEPTH-1])) ? 1'b0 : Valid_reg_B[PIPE_DEPTH-1];
-assign OutUpdate_A 	= 	(Valid_reg_A[PIPE_DEPTH-1] & Valid_reg_B[PIPE_DEPTH-1] & (DestVid_reg_A[PIPE_DEPTH-1]==DestVid_reg_B[PIPE_DEPTH-1])) ? result : Update_reg_A [PIPE_DEPTH-1];
-assign OutUpdate_B 	= 	(Valid_reg_A[PIPE_DEPTH-1] & Valid_reg_B[PIPE_DEPTH-1] & (DestVid_reg_A[PIPE_DEPTH-1]==DestVid_reg_B[PIPE_DEPTH-1])) ? 0 : Update_reg_B [PIPE_DEPTH-1];
-	
-endmodule
-
 module scheduler # (
     parameter PAR_NUM   = 32,
     parameter PAR_NUM_W = 5
@@ -1744,8 +1723,8 @@ always @(posedge clk) begin
 end
 
 endmodule
-
-/*module bram #(
+/*
+module bram #(
     parameter DATA = 1,
     parameter ADDR = 16
 ) (
@@ -2125,19 +2104,19 @@ module hdu_unit # (
             flag <= bram_flag_outA;            
         end    
     end 
-//    bram # (.DATA(1),  .ADDR(ADDR_W))
-//    hdu_ram(
-//        .clk(clk),
-//        .a_wr(Raddr_valid),
-//        .a_addr(Raddr),
-//        .a_din(1'b1),
-//        .a_dout(bram_flag_outA),
-//        .b_wr(Waddr_valid),
-//        .b_addr(Waddr),
-//        .b_din(1'b0),
-//        .b_dout(bram_flag_outB)
-//    );    
-mlab bram(
+    /*bram # (.DATA(1),  .ADDR(ADDR_W))
+    hdu_ram(
+        .clk(clk),
+        .a_wr(Raddr_valid),
+        .a_addr(Raddr),
+        .a_din(1'b1),
+        .a_dout(bram_flag_outA),
+        .b_wr(Waddr_valid),
+        .b_addr(Waddr),
+        .b_din(1'b0),
+        .b_dout(bram_flag_outB)
+    ); */   
+	 m20k bram(
 		  .clock(clk),
         .wren_a(Raddr_valid),
         .address_a(Raddr),
@@ -2224,17 +2203,17 @@ reg	 [Bank_Num_W-1:0] 		  	sel		 	[Bank_Num-1:0];
 genvar numbank; 
 generate for(numbank=0; numbank < Bank_Num; numbank = numbank+1) 
 	begin: elements	
-//		URAM #(.DATA_W(DATA_W), .ADDR_W(ADDR_W-Bank_Num_W))
-//		bank (
-//			.Data_in(bank_wdata[numbank]),
-//			.R_Addr(bank_raddr[numbank]),
-//			.W_Addr(bank_waddr[numbank]),
-//			.W_En(bank_w_en[numbank]),
-//			.En(1'b1),
-//			.clk(clk),
-//			.Data_out(bank_rdata[numbank])
-//		);
-m20k bank(
+	/*	URAM #(.DATA_W(DATA_W), .ADDR_W(ADDR_W-Bank_Num_W))
+		bank (
+			.Data_in(bank_wdata[numbank]),
+			.R_Addr(bank_raddr[numbank]),
+			.W_Addr(bank_waddr[numbank]),
+			.W_En(bank_w_en[numbank]),
+			.En(1'b1),
+			.clk(clk),
+			.Data_out(bank_rdata[numbank])
+		); */
+	bank buffer(
 		.data(bank_wdata[numbank]),
 		.rdaddress(bank_raddr[numbank]),
 		.wraddress(bank_waddr[numbank]),
@@ -2242,7 +2221,6 @@ m20k bank(
 		.clock(clk),
 		.q(bank_rdata[numbank])
 	);	
-	end
 endgenerate	
 	
 genvar i;
@@ -2335,8 +2313,8 @@ always @(posedge clk) begin
 	end
 end
 endmodule
-
-/*module URAM(
+/*
+module URAM(
 	Data_in,	// W
 	R_Addr,	// R
 	W_Addr,	// W
@@ -2663,183 +2641,111 @@ always @ (posedge clk) begin
 end
   
 endmodule
+/*
+module URAM(
+	Data_in,	// W
+	R_Addr,	// R
+	W_Addr,	// W
+	W_En,	// W
+	En,
+	clk,
+	Data_out	// R
+	);
+parameter DATA_W = 256;
+parameter ADDR_W = 10;
+localparam DEPTH = (2**ADDR_W);
 
-module spmv_PP # (
-    parameter PIPE_DEPTH = 5,
-    parameter URAM_DATA_W = 32,
-    parameter PAR_SIZE_W = 10,
-    parameter EDGE_W = 96
-)(
-    input wire                      clk,
-    input wire                      rst,     
-    input wire [1:0]                control,
-    input wire [URAM_DATA_W-1:0]    buffer_Din,
-    input wire                      buffer_Din_valid,   
-    input wire [EDGE_W-1:0]         input_word,
-    input wire [0:0]                input_valid,
-    output wire [URAM_DATA_W-1:0]   buffer_Dout,
-    output wire [PAR_SIZE_W-1:0]    buffer_Dout_Addr,
-    output wire                     buffer_Dout_valid,    
-    output wire [63:0]              output_word,    
-    output wire [0:0]               output_valid,
-    output wire [0:0]               par_active  
-);
-    
-    reg [EDGE_W-1:0] input_word_reg;
-    reg [0:0]  input_valid_reg; 
-    
-     always @(posedge clk) begin
-        if (rst) begin
-            input_word_reg <= 0;
-            input_valid_reg <= 0;
-        end  else begin
-            input_word_reg <= input_word;
-            input_valid_reg <= input_valid;
-        end
-      end
-       
-    spmv_scatter_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .URAM_DATA_W(URAM_DATA_W))
-    scatter_unit (
-        .clk(clk),
-        .rst(rst),
-        .edge_weight(input_word_reg[95:64]),
-        .src_attr(buffer_Dout),
-        .edge_dest(input_word_reg[63:32]),
-        .input_valid(input_valid_reg && buffer_Din_valid && control==1),    
-        .update_value(output_word[63:32]),
-        .update_dest(output_word[31:0]),    
-        .output_valid(output_valid)
-    );
+input [DATA_W-1:0] Data_in;
+input [ADDR_W-1:0] R_Addr, W_Addr;
+input W_En;
+input En;
+input clk;
+output reg [DATA_W-1:0] Data_out;
 
-    spmv_gather_pipe # (.PIPE_DEPTH (PIPE_DEPTH), .PAR_SIZE_W(PAR_SIZE_W))
-    gather_unit (
-        .clk(clk),
-        .rst(rst),
-        .update_value(input_word_reg[63:32]),
-        .update_dest(input_word_reg[31:0]),
-        .dest_attr(buffer_Din),
-        .input_valid(input_valid_reg && buffer_Din_valid && control==2),    
-        .WData(buffer_Dout),
-        .WAddr(buffer_Dout_Addr),    
-        .Wvalid(buffer_Dout_valid),
-        .par_active(par_active)
-    );
-    
+(* ram_style="block" *) reg [DATA_W-1:0] ram [DEPTH-1:0];
+integer i;
+
+always @(posedge clk) begin
+	if (En) begin
+		Data_out <= ram[R_Addr];
+		if (W_En) begin
+			ram[W_Addr] <= Data_in;
+		end
+	end	
+end    
+					
 endmodule
-
-
-module spmv_gather_pipe # (
-    parameter PIPE_DEPTH = 3,
-    parameter PAR_SIZE_W = 18
+*/
+module CaC # (
+	parameter DATA_W = 32,
+	parameter PIPE_DEPTH = 3
 )(
-    input wire                      clk,
-    input wire                      rst,        
-    input wire [31:0]               update_value,
-    input wire [31:0]               update_dest,
-    input wire [63:0]               dest_attr,
-    input wire [0:0]                input_valid,    
-    output wire [63:0]              WData,
-    output wire [PAR_SIZE_W-1:0]    WAddr,    
-    output wire [0:0]               Wvalid,
-    output wire [0:0]               par_active  
+	input wire          		clk,
+    input wire          		rst,    
+    input wire  [0:0]         	InputValid_A,
+    input wire  [0:0]         	InputValid_B,
+	input wire  [DATA_W-1:0]   	InDestVid_A,
+    input wire  [DATA_W-1:0]   	InDestVid_B,
+    input wire  [DATA_W-1:0]   	InUpdate_A,
+    input wire  [DATA_W-1:0]   	InUpdate_B,
+    output wire [DATA_W-1:0]   	OutUpdate_A,
+    output wire [DATA_W-1:0]   	OutUpdate_B,
+	output wire [DATA_W-1:0]  	OutDestVid_A,
+    output wire [DATA_W-1:0]  	OutDestVid_B,
+    output wire [0:0]  			OutValid_A,
+	output wire [0:0]  			OutValid_B
 );
 
-    reg [0:0] valid_reg [PIPE_DEPTH-1:0];
-    reg [31:0] dest_reg [PIPE_DEPTH-1:0];    
-    assign WAddr = dest_reg[PIPE_DEPTH-1][PAR_SIZE_W-1:0];
-    assign par_active = 1'b1;
-        
-    reg	[31:0] dest_attr_reg [PIPE_DEPTH-1:0];    	
-    integer i;
-    always @(posedge clk) begin
-        if (rst) begin
-            for(i=0; i<PIPE_DEPTH; i=i+1) begin
-                dest_reg[i] <= 0;
-				dest_attr_reg [i] <= 0;
-            end
-        end	else begin
-            for(i=1; i<PIPE_DEPTH; i=i+1) begin
-               dest_reg[i] <= dest_reg[i-1];
-			   dest_attr_reg [i] <= dest_attr_reg [i-1]; 
-            end
-            dest_reg [0] <=  update_dest;            
-			dest_attr_reg [0] <= dest_attr [63:32];
-        end
-    end    
-    
-   /* fp_add adder(              
-        .aclk(clk),
-        .s_axis_a_tvalid(input_valid),        
-        .s_axis_a_tdata(update_value),
-        .s_axis_b_tvalid(input_valid),
-        .s_axis_b_tdata(dest_attr[31:0]),
-        .m_axis_result_tvalid (Wvalid),
-        //.m_axis_result_tready(1'b1),      
-        .m_axis_result_tdata(WData[31:0])              
-    );*/
-	 	 add add(
-	.clk(clk),
-	.a(update_value),
-	.b(dest_attr[31:0]),
-	.q(WData[31:0]),
-	.areset(rst),
-	.en(input_valid)
+reg [0:0]			Valid_reg_A 	[PIPE_DEPTH-1:0];
+reg [0:0]			Valid_reg_B 	[PIPE_DEPTH-1:0];
+reg [DATA_W-1:0]	DestVid_reg_A 	[PIPE_DEPTH-1:0];
+reg [DATA_W-1:0]	DestVid_reg_B 	[PIPE_DEPTH-1:0];
+reg [DATA_W-1:0]	Update_reg_A 	[PIPE_DEPTH-1:0];
+reg [DATA_W-1:0]	Update_reg_B 	[PIPE_DEPTH-1:0];
+integer i;
+
+always @(posedge clk) begin
+	if (rst) begin
+		for(i=0; i<PIPE_DEPTH; i=i+1) begin 
+            Valid_reg_A [i] <= 0;    
+			Valid_reg_B [i] <= 0;
+			DestVid_reg_A [i] <= 0;
+			DestVid_reg_B [i] <= 0;
+			Update_reg_A [i] <= 0;
+			Update_reg_B [i] <= 0;
+        end 
+	end	else begin
+		Valid_reg_A[0] <= (InputValid_A & InputValid_B & InDestVid_B<InDestVid_A) ? InputValid_B : InputValid_A;
+		Valid_reg_B[0] <= (InputValid_A & InputValid_B & InDestVid_B>InDestVid_A) ? InputValid_A : InputValid_B;
+		DestVid_reg_A[0] <= (InputValid_A & InputValid_B & InDestVid_B<InDestVid_A) ? InDestVid_B : InDestVid_A;
+		DestVid_reg_B[0] <= (InputValid_A & InputValid_B & InDestVid_B>InDestVid_A) ? InDestVid_A : InDestVid_B;
+		Update_reg_A [0] <= (InputValid_A & InputValid_B & InDestVid_B<InDestVid_A) ? InUpdate_B : InUpdate_A;
+		Update_reg_B [0] <= (InputValid_A & InputValid_B & InDestVid_B>InDestVid_A) ? InUpdate_A : InUpdate_B;
+		for(i=1; i<PIPE_DEPTH; i=i+1) begin 
+            Valid_reg_A [i] <= Valid_reg_A [i-1];    
+			Valid_reg_B [i] <= Valid_reg_B [i-1];
+			DestVid_reg_A [i] <= DestVid_reg_A [i-1];
+			DestVid_reg_B [i] <= DestVid_reg_B [i-1];
+			Update_reg_A [i] <= Update_reg_A [i-1];
+			Update_reg_B [i] <= Update_reg_B [i-1];
+        end 		
+	end
+end
 	
-
-);
-    assign WData[63:32] = dest_attr_reg [PIPE_DEPTH-1];
+wire [DATA_W-1:0] result; 
 	
-endmodule
+combine_unit combiner(
+    .clk    (clk),    
+    .update_A (Update_reg_A [0]),    
+    .update_B (Update_reg_B [0]),                          
+    .combined_update (result)
+);  
 
-
-module spmv_scatter_pipe # (
-    parameter PIPE_DEPTH = 3,
-    parameter URAM_DATA_W = 32
-)(
-    input wire                      clk,
-    input wire                      rst,    
-    input wire [31:0]               edge_weight,
-    input wire [URAM_DATA_W-1:0]    src_attr,
-    input wire [31:0]               edge_dest,
-    input wire [0:0]                input_valid,    
-    output wire [31:0]              update_value,
-    output wire [31:0]              update_dest,    
-    output wire [0:0]               output_valid  
-);
-    reg [31:0] dest_reg [PIPE_DEPTH-1:0];    
-    assign update_dest = dest_reg[PIPE_DEPTH-1];
-    
-    integer i;
-    always @(posedge clk) begin
-        if (rst) begin
-            for(i=0; i<PIPE_DEPTH; i=i+1) begin
-                dest_reg[i] <= 0;
-            end
-        end	else begin
-            for(i=1; i<PIPE_DEPTH; i=i+1) begin
-               dest_reg[i] <= dest_reg[i-1];
-            end
-            dest_reg [0] <=  edge_dest;            
-        end
-    end
-    
-   /* fp_mul multiplier(              
-        .aclk(clk),
-        .s_axis_a_tvalid(input_valid),        
-        .s_axis_a_tdata(edge_weight),
-        .s_axis_b_tvalid(input_valid),
-        .s_axis_b_tdata(src_attr),
-        .m_axis_result_tvalid (output_valid),
-        //.m_axis_result_tready(1'b1),      
-        .m_axis_result_tdata(update_value)              
-    );*/
-	 	 mult mult(
-	.clk(clk),
-	.a(edge_weight),
-	.b(src_attr),
-	.q(update_value),
-	.areset(rst),
-	.en(input_valid)
-);
-    
+assign OutDestVid_A = 	DestVid_reg_A[PIPE_DEPTH-1];
+assign OutDestVid_B = 	DestVid_reg_A[PIPE_DEPTH-1];
+assign OutValid_A	= 	Valid_reg_A[PIPE_DEPTH-1];
+assign OutValid_B 	= 	(Valid_reg_A[PIPE_DEPTH-1] & Valid_reg_B[PIPE_DEPTH-1] & (DestVid_reg_A[PIPE_DEPTH-1]==DestVid_reg_B[PIPE_DEPTH-1])) ? 1'b0 : Valid_reg_B[PIPE_DEPTH-1];
+assign OutUpdate_A 	= 	(Valid_reg_A[PIPE_DEPTH-1] & Valid_reg_B[PIPE_DEPTH-1] & (DestVid_reg_A[PIPE_DEPTH-1]==DestVid_reg_B[PIPE_DEPTH-1])) ? result : Update_reg_A [PIPE_DEPTH-1];
+assign OutUpdate_B 	= 	(Valid_reg_A[PIPE_DEPTH-1] & Valid_reg_B[PIPE_DEPTH-1] & (DestVid_reg_A[PIPE_DEPTH-1]==DestVid_reg_B[PIPE_DEPTH-1])) ? 0 : Update_reg_B [PIPE_DEPTH-1];
+	
 endmodule

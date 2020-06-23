@@ -2113,7 +2113,7 @@ module hdu_unit # (
         .b_din(1'b0),
         .b_dout(bram_flag_outB)
     );    */
-	 mlab bram(
+	 m20k bram(
 		  .clock(clk),
         .wren_a(Raddr_valid),
         .address_a(Raddr),
@@ -2210,7 +2210,7 @@ generate for(numbank=0; numbank < Bank_Num; numbank = numbank+1)
 			.clk(clk),
 			.Data_out(bank_rdata[numbank])
 		);*/
-				m20k bank(
+		bank buffer(
 		.data(bank_wdata[numbank]),
 		.rdaddress(bank_raddr[numbank]),
 		.wraddress(bank_waddr[numbank]),
