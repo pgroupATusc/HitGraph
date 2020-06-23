@@ -20,7 +20,7 @@ We have assumed that partial input and output data are stored in the internal me
 include 4 algorithm processing cores for Sparse Matrix-Vector Multiplication (SpMV), PageRank (PR), Weakly Connected Component (WCC), Single Source Shortest Path (SSSP). Make each module as the top module while running each algorithm. IP core template generate by Intel Quartus 20.1 for reference <br />
 ### test_tb:
 Contains unit test benches
-# IP core setting:
+# IP core settings:
 #### Floating point adder
 Find: IP catalog =>  basic function => arithmetic => floating point function <br />
 Name: add <br />
