@@ -8,6 +8,9 @@ Based on our design methodology, we accelerate Sparse Matrix-Vector Multiplicati
 We use **Intel Stratix 10 1SX280LH3F55I3XG** to conduct our experiments. <br /> <br />
 **Find the paper on https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=8685122** <br /> <br />
 We used "ForeGraph: Exploring Large-scale Graph Processing on Multi-FPGA Architecture (https://web.cs.ucla.edu/~chiyuze/pub/fpga17.pdf) and "GraphOps: A dataflow library for graph analytics acceleration" (https://dl.acm.org/doi/pdf/10.1145/2847263.2847337) for baseline comparisons <br />
+# Hardware/Tools
+1. Targeted FPGA: Intel Stratix 10 1SX280LH3F55I3XG <br />
+2. Tools: Intel Quartus 20.1 <br />
 # Definition of inputs and outputs
 ![hit](https://user-images.githubusercontent.com/58924633/85347795-8a8c9680-b4ae-11ea-9f91-51bd60abe20e.PNG)
 <br /> The hitgraph core contains the implementations of graph algorithms discussed in the paper (shown in yellow).
@@ -18,6 +21,11 @@ include 4 algorithm processing cores for Sparse Matrix-Vector Multiplication (Sp
 ### test_tb:
 Contains unit test benches
 # IP core setting:
-  IP catalog => basic function => floating point function => named this function add => in Functionality choose Generate Enable and generate HDL;
-  
-  IP catalog =>  basic function => choose arithmetic => floating point function=> named this function mult => in Functionality choose Generate Enable and generate HDL
+#### Floating point adder
+Find: IP catalog =>  basic function => arithmetic => floating point function <br />
+Name: add <br />
+Other Info: choose Generate Enable and generate HDL <br />
+#### Floating point mult  
+Find: IP catalog =>  basic function => arithmetic => floating point function <br />
+Name: mult <br />
+Other Info: In Functionality choose Generate Enable and generate HDL <br />
