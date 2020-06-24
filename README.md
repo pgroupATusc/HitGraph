@@ -20,7 +20,7 @@ We have assumed that partial input and output data are stored in the internal me
 include 4 algorithm processing cores for Sparse Matrix-Vector Multiplication (SpMV), PageRank (PR), Weakly Connected Component (WCC), Single Source Shortest Path (SSSP). Make each module as the top module while running each algorithm. IP core template generate by Intel Quartus 20.1 for reference <br />
 ### test_tb:
 Contains unit test benches
-# IP core settings:
+# IP core configurations:
 #### Floating point adder
 Find: IP catalog =>  basic function => arithmetic => floating point function <br />
 Name: add <br />
@@ -29,3 +29,11 @@ Other Info: choose Generate Enable and generate HDL <br />
 Find: IP catalog =>  basic function => arithmetic => floating point function <br />
 Name: mult <br />
 Other Info: In Functionality choose Generate Enable and generate HDL <br />
+
+template of these IP cores can be found in algorithm proccessing core/ IP core template
+# Setting up the projects
+First create a project using Intel Stratix 10 1SX280LH3F55I3XG,
+Before you run synthesis you need to set up IP cores like the setion "IP cores Confugurations"
+You can then run synthesis in intel Quartus by clicking "start compilation"
+For simulating each modules, you can go to the testbench which includes three important modules in this design.
+
