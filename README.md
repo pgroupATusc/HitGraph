@@ -33,7 +33,7 @@ Other Info: choose Generate Enable and generate HDL <br />
 Find: IP catalog =>  basic function => arithmetic => floating point function <br />
 Name: mult <br />
 Other Info: In Functionality choose Generate Enable and generate HDL <br />
-#### Template of these IP cores can be found in algorithm proccessing core/ IP core template <br />
+#### Template of these IP cores can be found in IP core template <br />
 
 # Setting up the projects
 1. Create a new project using Intel Quartus 20.1 and use Intel Stratix 10 1SX280LH3F55I3XG as the targeted device <br />
