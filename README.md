@@ -22,7 +22,8 @@ We have assumed that partial input and output data are stored in the internal me
 ### Algorithm Processing Core: 
 include 4 algorithm processing cores for Sparse Matrix-Vector Multiplication (SpMV), PageRank (PR), Weakly Connected Component (WCC), Single Source Shortest Path (SSSP). Make each module as the top module while running each algorithm. IP core template generate by Intel Quartus 20.1 for reference <br />
 ### test_tb:
-Contains unit test benches
+Contains unit test benches for the core modules. <br />
+test_config_1_1 folder contains complete testing flow for the configuration of 1 partition with 1 pipeline  <br />
 
 # Configuring IP Cores:
 #### Floating point adder
