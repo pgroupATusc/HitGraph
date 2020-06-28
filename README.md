@@ -1,4 +1,5 @@
-# Purpose of the project
+# HitGraph: High-throughput Graph Processing
+Framework on FPGA
 HitGraph, an FPGA framework to accelerate graph processing based on the edge-centric paradigm. HitGraph takes in an edge-centric graph algorithm and hardware resource constraints, determines design parameters, and then generates a Register Transfer Level (RTL) FPGA design. This makes accelerator design for various graph analytics transparent and
 user-friendly by masking internal details of the accelerator design process. HitGraph enables increased data reuse and parallelism through novel algorithmic optimizations: <br />
 (1) an optimized data layout that reduces non-sequential external memory accesses <br />
